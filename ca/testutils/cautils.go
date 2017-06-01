@@ -24,6 +24,7 @@ import (
 	"github.com/docker/swarmkit/log"
 	"github.com/docker/swarmkit/manager/state/store"
 	stateutils "github.com/docker/swarmkit/manager/state/testutils"
+	"github.com/docker/swarmkit/pkcs8"
 	"github.com/docker/swarmkit/remotes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -415,6 +416,15 @@ func CreateRootCertAndKey(rootCN string) ([]byte, []byte, error) {
 
 	// Generate the CA and get the certificate and private key
 	cert, _, key, err := initca.New(&req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	key, err = pkcs8.ConvertECPrivateKeyPEM(key)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return cert, key, err
 }
 

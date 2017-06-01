@@ -25,6 +25,7 @@ import (
 	"github.com/docker/swarmkit/manager/encryption"
 	"github.com/docker/swarmkit/manager/state/raft/storage"
 	"github.com/docker/swarmkit/manager/state/store"
+	"github.com/docker/swarmkit/pkcs8"
 	"github.com/docker/swarmkit/testutils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -338,7 +339,7 @@ func TestManagerLockUnlock(t *testing.T) {
 		keyBlock, _ = pem.Decode(updatedKey)
 		require.NotNil(t, keyBlock) // this should never error due to atomic writes
 
-		if !x509.IsEncryptedPEMBlock(keyBlock) {
+		if !pkcs8.IsEncryptedPEMBlock(keyBlock) {
 			return fmt.Errorf("Key not encrypted")
 		}
 
@@ -613,10 +614,10 @@ func TestManagerEncryptsDecryptsRootKeyMaterial(t *testing.T) {
 			if keyBlock == nil {
 				return fmt.Errorf("could not pem decode root key")
 			}
-			if !x509.IsEncryptedPEMBlock(keyBlock) {
+			if !pkcs8.IsEncryptedPEMBlock(keyBlock) {
 				return fmt.Errorf("root key material not encrypted yet")
 			}
-			_, err = x509.DecryptPEMBlock(keyBlock, []byte("kek"))
+			_, err = pkcs8.DecryptPEMBlock(keyBlock, []byte("kek"))
 			return err
 		})
 	})
@@ -648,7 +649,7 @@ func TestManagerEncryptsDecryptsRootKeyMaterial(t *testing.T) {
 				if keyBlock == nil {
 					return fmt.Errorf("could not pem decode root key")
 				}
-				if x509.IsEncryptedPEMBlock(keyBlock) {
+				if pkcs8.IsEncryptedPEMBlock(keyBlock) {
 					return fmt.Errorf("root key material not decrypted yet")
 				}
 				return nil
@@ -666,14 +667,13 @@ func TestManagerEncryptsDecryptsRootKeyMaterial(t *testing.T) {
 			return fmt.Errorf("cluster gone")
 		}
 		cluster.RootCA.CAKey = []byte(`
------BEGIN EC PRIVATE KEY-----
-Proc-Type: 4,ENCRYPTED
-DEK-Info: AES-256-CBC,fcc97c79c251d2fedeab96a19f3b826e
-
-8IHMsMKfCMWXDpBNLp7tyuwUQ1FmisiPyDZg9UvoX4RvIDUxj7sIiw4lsP+EgnKG
-09oKeXHSYRpawB58dvLqxPtjnrEj1jLqoMydTrhRDJ+zBMxPxpTJh/BASADhMOmf
-G80TfNRRr/qdB9hLwfyOyk2tBipkAgs6cl+CZAaqx3k=
------END EC PRIVATE KEY-----
+-----BEGIN ENCRYPTED PRIVATE KEY-----
+MIHeMEkGCSqGSIb3DQEFDTA8MBsGCSqGSIb3DQEFDDAOBAiLGJtiTmJ3rQICCAAw
+HQYJYIZIAWUDBAEqBBBeDoliB0Qe73DdcMeFCuRzBIGQP/iFMPj9BJ/81GV//fMp
+KPozbY0EWodXt7KArbeROd5+uWw1muLANUa3KkkXyQhmzlR2Zv3Y/kBuPay9RweU
+md94ZD/HY9K+ISv4tIA7u8gp2Hqr0elfG0QqBuwrh688ZF5jii6umZzXtLVVMvWd
+NF7w1CA6b8w1aTIklVjv0AJ9tgtGQb9phVigPAdyyw6v
+-----END ENCRYPTED PRIVATE KEY-----
 `)
 		return store.UpdateCluster(tx, cluster)
 	}))

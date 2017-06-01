@@ -233,9 +233,9 @@ func TestLoadSecurityConfigInvalidKey(t *testing.T) {
 	defer tc.Stop()
 
 	// Write some garbage to the Key
-	ioutil.WriteFile(tc.Paths.Node.Key, []byte(`-----BEGIN EC PRIVATE KEY-----\n
+	ioutil.WriteFile(tc.Paths.Node.Key, []byte(`-----BEGIN PRIVATE KEY-----\n
 some random garbage\n
------END EC PRIVATE KEY-----`), 0644)
+-----END PRIVATE KEY-----`), 0644)
 
 	krw := ca.NewKeyReadWriter(tc.Paths.Node, nil, nil)
 
