@@ -28,6 +28,7 @@ import (
 	"github.com/docker/swarmkit/api"
 	"github.com/docker/swarmkit/connectionbroker"
 	"github.com/docker/swarmkit/ioutils"
+	"github.com/docker/swarmkit/keyutils"
 	"github.com/docker/swarmkit/pkcs8"
 	"github.com/opencontainers/go-digest"
 	"github.com/pkg/errors"
@@ -656,9 +657,9 @@ func newLocalSigner(keyBytes, certBytes []byte, certExpiry time.Duration, rootPo
 	}
 
 	// Attempt to decrypt the current private-key with the passphrases provided
-	priv, err = pkcs8.ParsePrivateKeyPEMWithPassword(keyBytes, passphrase)
+	priv, err = keyutils.ParsePrivateKeyPEMWithPassword(keyBytes, passphrase)
 	if err != nil {
-		priv, err = pkcs8.ParsePrivateKeyPEMWithPassword(keyBytes, passphrasePrev)
+		priv, err = keyutils.ParsePrivateKeyPEMWithPassword(keyBytes, passphrasePrev)
 		if err != nil {
 			return nil, errors.Wrap(err, "malformed private key")
 		}
@@ -678,7 +679,7 @@ func newLocalSigner(keyBytes, certBytes []byte, certExpiry time.Duration, rootPo
 	// ensure it is encrypted, so it doesn't hit raft in plain-text
 	// we don't have to check for nil, because if we couldn't pem-decode the bytes, then parsing above would have failed
 	keyBlock, _ := pem.Decode(keyBytes)
-	if passphraseStr != "" && !pkcs8.IsEncryptedPEMBlock(keyBlock) {
+	if passphraseStr != "" && !keyutils.IsEncryptedPEMBlock(keyBlock) {
 		keyBytes, err = EncryptECPrivateKey(keyBytes, passphraseStr)
 		if err != nil {
 			return nil, errors.Wrap(err, "unable to encrypt signing CA key material")
@@ -985,7 +986,7 @@ func EncryptECPrivateKey(key []byte, passphraseStr string) ([]byte, error) {
 		return nil, errors.New("error while decoding PEM key")
 	}
 
-	encryptedPEMBlock, err := pkcs8.EncryptPEMBlock(keyBlock.Bytes, passphrase)
+	encryptedPEMBlock, err := keyutils.EncryptPEMBlock(keyBlock.Bytes, passphrase)
 	if err != nil {
 		return nil, err
 	}
