@@ -16,13 +16,12 @@ import (
 	"github.com/docker/swarmkit/ca"
 	"github.com/docker/swarmkit/identity"
 	"github.com/docker/swarmkit/log"
-	"github.com/docker/swarmkit/manager/encryption"
 	"github.com/docker/swarmkit/node"
 	"github.com/docker/swarmkit/testutils"
 	"golang.org/x/net/context"
 )
 
-const opsTimeout = 64 * time.Second
+const opsTimeout = 5 * time.Second
 
 // Cluster is representation of cluster - connected nodes.
 type testCluster struct {
@@ -451,7 +450,7 @@ func (c *testCluster) AutolockManagers(autolock bool) error {
 	}, opsTimeout)
 }
 
-func (c *testCluster) GetUnlockKey() (string, error) {
+func (c *testCluster) GetUnlockKey() ([]byte, error) {
 	opts := []grpc.DialOption{}
 	insecureCreds := credentials.NewTLS(&tls.Config{InsecureSkipVerify: true})
 	opts = append(opts, grpc.WithTransportCredentials(insecureCreds))
@@ -461,13 +460,13 @@ func (c *testCluster) GetUnlockKey() (string, error) {
 		}))
 	conn, err := grpc.Dial(c.RandomManager().config.ListenControlAPI, opts...)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	resp, err := api.NewCAClient(conn).GetUnlockKey(context.Background(), &api.GetUnlockKeyRequest{})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return encryption.HumanReadableKey(resp.UnlockKey), nil
+	return resp.UnlockKey, nil
 }
