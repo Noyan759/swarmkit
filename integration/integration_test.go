@@ -301,31 +301,31 @@ func TestAutolockManagers(t *testing.T) {
 		unlockKey, err := cl.GetUnlockKey()
 		require.NoError(t, err)
 		require.Nil(t, unlockKey)
-		println(unlockKey)
 
 		// join a stopped node with autolock off
 		require.NoError(t, manager.Pause(false))
 		require.NoError(t, cl.StartNode(nodeID))
 		pollClusterReady(t, cl, numWorker, numManager)
 
-		println("Before autolock: ", manager.config.AutoLockManagers)
-
 		// lock the cluster and make sure the unlock key is not empty
 		require.NoError(t, cl.AutolockManagers(true))
 		unlockKey, err = cl.GetUnlockKey()
 		require.NoError(t, err)
 		require.NotNil(t, unlockKey)
-		println(string(unlockKey))
-		println("After autolock: ", manager.config.AutoLockManagers)
 
-		// join a stopped node with autolock on without providing the unlock-keyo
+		// join a stopped node with autolock on providing the unlock-key
+		manager.config.UnlockKey = unlockKey
+		require.NoError(t, manager.Pause(false))
+		require.NoError(t, cl.StartNode(nodeID))
+		pollClusterReady(t, cl, numWorker, numManager)
+
+		// join a stopped node with autolock on without providing the unlock-key
+		manager.config.UnlockKey = nil
 		require.NoError(t, manager.Pause(false))
 		err = cl.StartNode(nodeID)
 		require.Error(t, err)
 		require.Equal(t, node.ErrInvalidUnlockKey, err)
-		//manager.config.AutoLockManagers = true
-		//manager.config.UnlockKey = unlockKey
-		//require.NoError(t, cl.StartNode(nodeID))
+		numManager--
 		pollClusterReady(t, cl, numWorker, numManager)
 
 		// rotate unlock key
@@ -334,6 +334,20 @@ func TestAutolockManagers(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, newUnlockKey)
 		require.NotEqual(t, unlockKey, newUnlockKey)
+
+		// join a stopped node with autolock on providing updated(rotated) unlock-key
+		manager.config.UnlockKey = newUnlockKey
+		require.NoError(t, manager.Pause(false))
+		require.NoError(t, cl.StartNode(nodeID))
+		numManager++
+		pollClusterReady(t, cl, numWorker, numManager)
+
+		// join a stopped node with autolock on providing old unlock-key
+		//manager.config.UnlockKey = unlockKey
+		//require.NoError(t, manager.Pause(false))
+		//err = cl.StartNode(nodeID)
+		//require.Error(t, err)
+		//require.Equal(t, node.ErrInvalidUnlockKey, err)
 
 		// unlock the cluster
 		require.NoError(t, cl.AutolockManagers(false))

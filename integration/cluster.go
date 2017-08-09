@@ -21,7 +21,7 @@ import (
 	"golang.org/x/net/context"
 )
 
-const opsTimeout = 5 * time.Second
+const opsTimeout = 64 * time.Second
 
 // Cluster is representation of cluster - connected nodes.
 type testCluster struct {
