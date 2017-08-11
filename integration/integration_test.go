@@ -319,15 +319,6 @@ func TestAutolockManagers(t *testing.T) {
 		require.NoError(t, cl.StartNode(nodeID))
 		pollClusterReady(t, cl, numWorker, numManager)
 
-		// join a stopped node with autolock on without providing the unlock-key
-		manager.config.UnlockKey = nil
-		require.NoError(t, manager.Pause(false))
-		err = cl.StartNode(nodeID)
-		require.Error(t, err)
-		require.Equal(t, node.ErrInvalidUnlockKey, err)
-		numManager--
-		pollClusterReady(t, cl, numWorker, numManager)
-
 		// rotate unlock key
 		require.NoError(t, cl.RotateUnlockKey())
 		newUnlockKey, err := cl.GetUnlockKey()
@@ -339,15 +330,21 @@ func TestAutolockManagers(t *testing.T) {
 		manager.config.UnlockKey = newUnlockKey
 		require.NoError(t, manager.Pause(false))
 		require.NoError(t, cl.StartNode(nodeID))
-		numManager++
 		pollClusterReady(t, cl, numWorker, numManager)
 
+		// join a stopped node with autolock on without providing the unlock-key
+		manager.config.UnlockKey = nil
+		require.NoError(t, manager.Pause(false))
+		err = cl.StartNode(nodeID)
+		require.Error(t, err)
+		require.Equal(t, node.ErrInvalidUnlockKey, err)
+
 		// join a stopped node with autolock on providing old unlock-key
-		//manager.config.UnlockKey = unlockKey
-		//require.NoError(t, manager.Pause(false))
-		//err = cl.StartNode(nodeID)
-		//require.Error(t, err)
-		//require.Equal(t, node.ErrInvalidUnlockKey, err)
+		manager.config.UnlockKey = unlockKey
+		require.NoError(t, manager.Pause(false))
+		err = cl.StartNode(nodeID)
+		require.Error(t, err)
+		require.Equal(t, node.ErrInvalidUnlockKey, err)
 
 		// unlock the cluster
 		require.NoError(t, cl.AutolockManagers(false))
